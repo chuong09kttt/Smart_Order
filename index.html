@@ -2,21 +2,66 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8">
-  <title>Đặt món tại bàn</title>
-  <link rel="stylesheet" href="styles.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gọi món tại bàn</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; background: #f8f8f8; }
+    h2 { color: #333; }
+    .menu-item { margin: 8px 0; }
+    textarea { width: 100%; max-width: 400px; }
+    button { padding: 10px 20px; background: #4CAF50; color: white; border: none; border-radius: 5px; cursor: pointer; }
+    button:hover { background: #45a049; }
+  </style>
 </head>
 <body>
   <h2>📋 Gọi món - Bàn số <span id="table-number"></span></h2>
-  
+
   <form id="order-form">
     <div id="menu-container"></div>
 
     <label for="note">Ghi chú:</label><br>
-    <textarea name="note" rows="3" cols="30"></textarea><br><br>
+    <textarea name="note" rows="3"></textarea><br><br>
 
     <button type="submit">📤 Gửi đơn hàng</button>
   </form>
 
-  <script src="scripts.js"></script>
+  <script>
+    const menu = ["Trà sữa", "Cà phê", "Bánh mì", "Phở bò", "Cơm gà"];
+
+    function getTableNumber() {
+      const params = new URLSearchParams(window.location.search);
+      return params.get("table") || "?";
+    }
+
+    function buildMenu() {
+      const container = document.getElementById("menu-container");
+      menu.forEach(item => {
+        const div = document.createElement("div");
+        div.className = "menu-item";
+        div.innerHTML = `<label><input type="checkbox" name="items" value="${item}"> ${item}</label>`;
+        container.appendChild(div);
+      });
+    }
+
+    document.getElementById("table-number").textContent = getTableNumber();
+    buildMenu();
+
+    document.getElementById("order-form").addEventListener("submit", function (e) {
+      e.preventDefault();
+      const table = getTableNumber();
+      const items = [...document.querySelectorAll('input[name="items"]:checked')].map(i => i.value);
+      const note = document.querySelector('textarea[name="note"]').value;
+
+      const formURL = 'https://docs.google.com/forms/d/e/YOUR_FORM_ID/formResponse';
+      const data = new FormData();
+      data.append("entry.625024745", table);         // Thay entry.X bằng ID của các câu hỏi Google Forms
+      data.append("entry.45948968", items.join(", "));
+      data.append("entry.2093553958", note);
+
+      fetch(formURL, { method: "POST", mode: "no-cors", body: data })
+        .then(() => alert("✅ Đơn hàng đã gửi!"))
+        .catch(() => alert("❌ Gửi lỗi!"));
+    });
+  </script>
 </body>
 </html>
