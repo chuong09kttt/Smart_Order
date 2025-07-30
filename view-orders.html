@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Đơn hàng hôm nay</title>
+  <style>
+    body { font-family: Arial; padding: 20px; background: #f0f0f0; }
+    h2 { color: #333; }
+    .order { background: white; margin: 10px 0; padding: 10px; border-left: 5px solid #4CAF50; }
+    .order b { color: #333; }
+  </style>
+</head>
+<body>
+  <h2>📦 Danh sách đơn hàng</h2>
+  <div id="orders"></div>
+
+  <script>
+    const sheetAPI = "https://script.google.com/macros/s/AKfycbxyz123456789/exec"; // <-- Dán URL Apps Script của bạn
+
+    fetch(sheetAPI)
+      .then(res => res.json())
+      .then(data => {
+        const container = document.getElementById("orders");
+        if (data.length === 0) {
+          container.innerHTML = "<p>Chưa có đơn hàng nào.</p>";
+          return;
+        }
+
+        data.reverse().forEach(order => {
+          const div = document.createElement("div");
+          div.className = "order";
+          div.innerHTML = `
+            <b>Bàn:</b> ${order["Bàn số"] || "?"} <br>
+            <b>Món:</b> ${order["Món đã gọi"] || "-"} <br>
+            <b>Ghi chú:</b> ${order["Ghi chú"] || "-"} <br>
+            <small>🕒 ${order["Timestamp"] || ""}</small>
+          `;
+          container.appendChild(div);
+        });
+      })
+      .catch(() => {
+        document.getElementById("orders").innerHTML = "<p>Lỗi khi tải dữ liệu.</p>";
+      });
+  </script>
+</body>
+</html>
