@@ -52,7 +52,7 @@
       const items = [...document.querySelectorAll('input[name="items"]:checked')].map(i => i.value);
       const note = document.querySelector('textarea[name="note"]').value;
 
-      const formURL = 'https://docs.google.com/forms/d/e/YOUR_FORM_ID/formResponse';
+      const formURL = 'https://docs.google.com/forms/d/e/1OdhpqkC5PqVZPmTuDrnAVGL_xcKJVNgQXLQd6hKAJMs/formResponse';
       const data = new FormData();
       data.append("entry.625024745", table);         // Thay entry.X bằng ID của các câu hỏi Google Forms
       data.append("entry.45948968", items.join(", "));
