@@ -2,45 +2,125 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8">
-  <title>Đơn hàng hôm nay</title>
+  <title>Xem đơn hàng</title>
   <style>
-    body { font-family: Arial; padding: 20px; background: #f0f0f0; }
-    h2 { color: #333; }
-    .order { background: white; margin: 10px 0; padding: 10px; border-left: 5px solid #4CAF50; }
-    .order b { color: #333; }
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+    }
+    h2 {
+      color: #0077cc;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 8px;
+      text-align: left;
+    }
+    th {
+      background: #f0f0f0;
+    }
+    input, select {
+      padding: 5px;
+      margin-right: 10px;
+    }
   </style>
 </head>
 <body>
-  <h2>📦 Danh sách đơn hàng</h2>
-  <div id="orders"></div>
+  <h2>🔎 Xem đơn hàng theo thời gian và bàn</h2>
+
+  <label for="tableFilter">Lọc theo bàn:</label>
+  <select id="tableFilter">
+    <option value="">Tất cả</option>
+  </select>
+
+  <label for="timeFilter">Lọc theo giờ (HH:MM):</label>
+  <input type="time" id="timeFilter">
+  <button onclick="filterOrders()">Lọc</button>
+
+  <table id="orderTable">
+    <thead>
+      <tr>
+        <th>Thời gian</th>
+        <th>Số bàn</th>
+        <th>Tên món</th>
+        <th>Số lượng</th>
+        <th>Ghi chú</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
 
   <script>
-    const sheetAPI = "https://script.google.com/macros/s/AKfycbxyz123456789/exec"; // <-- Dán URL Apps Script của bạn
+    const sheetURL = 'https://docs.google.com/spreadsheets/d/1OdhpqkC5PqVZPmTuDrnAVGL_xcKJVNgQXLQd6hKAJMs/gviz/tq?tqx=out:json';
 
-    fetch(sheetAPI)
-      .then(res => res.json())
-      .then(data => {
-        const container = document.getElementById("orders");
-        if (data.length === 0) {
-          container.innerHTML = "<p>Chưa có đơn hàng nào.</p>";
-          return;
-        }
+    let allData = [];
 
-        data.reverse().forEach(order => {
-          const div = document.createElement("div");
-          div.className = "order";
-          div.innerHTML = `
-            <b>Bàn:</b> ${order["Bàn số"] || "?"} <br>
-            <b>Món:</b> ${order["Món đã gọi"] || "-"} <br>
-            <b>Ghi chú:</b> ${order["Ghi chú"] || "-"} <br>
-            <small>🕒 ${order["Timestamp"] || ""}</small>
-          `;
-          container.appendChild(div);
+    function loadOrders() {
+      fetch(sheetURL)
+        .then(res => res.text())
+        .then(text => {
+          const json = JSON.parse(text.substr(47).slice(0, -2));
+          const rows = json.table.rows;
+
+          allData = rows.map(r => ({
+            time: r.c[0]?.f || '',
+            table: r.c[1]?.v || '',
+            food: r.c[2]?.v || '',
+            quantity: r.c[3]?.v || '',
+            note: r.c[4]?.v || ''
+          }));
+
+          fillTable(allData);
+          populateTableFilter(allData);
         });
-      })
-      .catch(() => {
-        document.getElementById("orders").innerHTML = "<p>Lỗi khi tải dữ liệu.</p>";
+    }
+
+    function fillTable(data) {
+      const tbody = document.querySelector('#orderTable tbody');
+      tbody.innerHTML = '';
+      data.forEach(row => {
+        tbody.innerHTML += `
+          <tr>
+            <td>${row.time}</td>
+            <td>${row.table}</td>
+            <td>${row.food}</td>
+            <td>${row.quantity}</td>
+            <td>${row.note}</td>
+          </tr>
+        `;
       });
+    }
+
+    function populateTableFilter(data) {
+      const select = document.getElementById('tableFilter');
+      const uniqueTables = [...new Set(data.map(row => row.table))];
+      uniqueTables.forEach(table => {
+        const option = document.createElement('option');
+        option.value = table;
+        option.textContent = `Bàn ${table}`;
+        select.appendChild(option);
+      });
+    }
+
+    function filterOrders() {
+      const tableValue = document.getElementById('tableFilter').value;
+      const timeValue = document.getElementById('timeFilter').value;
+
+      const filtered = allData.filter(row => {
+        const matchTable = tableValue === '' || row.table == tableValue;
+        const matchTime = timeValue === '' || row.time.startsWith(timeValue);
+        return matchTable && matchTime;
+      });
+
+      fillTable(filtered);
+    }
+
+    loadOrders();
   </script>
 </body>
 </html>
