@@ -2,125 +2,125 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8">
-  <title>Xem đơn hàng</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      padding: 20px;
-    }
-    h2 {
-      color: #0077cc;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 10px;
-    }
-    th, td {
-      border: 1px solid #ccc;
-      padding: 8px;
-      text-align: left;
-    }
-    th {
-      background: #f0f0f0;
-    }
-    input, select {
-      padding: 5px;
-      margin-right: 10px;
-    }
-  </style>
+  <title>📋 Xem Đơn Hàng</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
-<body>
-  <h2>🔎 Xem đơn hàng theo thời gian và bàn</h2>
+<body class="bg-blue-50 min-h-screen p-6">
+  <div class="max-w-6xl mx-auto">
+    <h1 class="text-3xl font-bold text-center text-blue-700 mb-6">📋 Danh sách đơn hàng</h1>
 
-  <label for="tableFilter">Lọc theo bàn:</label>
-  <select id="tableFilter">
-    <option value="">Tất cả</option>
-  </select>
+    <!-- Bộ lọc -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+      <input type="text" id="filterTable" placeholder="🔍 Lọc theo bàn" class="p-2 border rounded w-full">
+      <input type="time" id="filterTime" class="p-2 border rounded w-full">
+      <button onclick="loadData()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">🔁 Làm mới</button>
+    </div>
 
-  <label for="timeFilter">Lọc theo giờ (HH:MM):</label>
-  <input type="time" id="timeFilter">
-  <button onclick="filterOrders()">Lọc</button>
+    <!-- Bảng dữ liệu -->
+    <div class="overflow-x-auto">
+      <table class="min-w-full bg-white rounded shadow">
+        <thead class="bg-blue-100 text-blue-800">
+          <tr>
+            <th class="py-2 px-4 text-left">⏰ Giờ</th>
+            <th class="py-2 px-4 text-left">🍽️ Bàn</th>
+            <th class="py-2 px-4 text-left">🥢 Món</th>
+            <th class="py-2 px-4 text-left">🧾 Ghi chú</th>
+          </tr>
+        </thead>
+        <tbody id="orderTable" class="text-gray-700"></tbody>
+      </table>
+    </div>
 
-  <table id="orderTable">
-    <thead>
-      <tr>
-        <th>Thời gian</th>
-        <th>Số bàn</th>
-        <th>Tên món</th>
-        <th>Số lượng</th>
-        <th>Ghi chú</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
+    <!-- Biểu đồ -->
+    <div class="mt-10 bg-white rounded p-4 shadow">
+      <h2 class="text-xl font-bold text-blue-700 mb-2">📊 Thống kê món được gọi nhiều</h2>
+      <canvas id="chartFood" height="120"></canvas>
+    </div>
+  </div>
 
   <script>
-    const sheetURL = 'https://docs.google.com/spreadsheets/d/1OdhpqkC5PqVZPmTuDrnAVGL_xcKJVNgQXLQd6hKAJMs/gviz/tq?tqx=out:json';
+    const SHEET_ID = "YOUR_SHEET_ID";
+    const SHEET_NAME = "Form Responses 1";
+    const API_URL = `https://docs.google.com/spreadsheets/d/1OdhpqkC5PqVZPmTuDrnAVGL_xcKJVNgQXLQd6hKAJMs/gviz/tq?tqx=out:json&sheet=${SHEET_NAME}`;
 
-    let allData = [];
+    async function loadData() {
+      try {
+        const res = await fetch(API_URL);
+        const text = await res.text();
+        const json = JSON.parse(text.substr(47).slice(0, -2));
+        const rows = json.table.rows;
 
-    function loadOrders() {
-      fetch(sheetURL)
-        .then(res => res.text())
-        .then(text => {
-          const json = JSON.parse(text.substr(47).slice(0, -2));
-          const rows = json.table.rows;
+        const tbody = document.getElementById("orderTable");
+        tbody.innerHTML = "";
 
-          allData = rows.map(r => ({
-            time: r.c[0]?.f || '',
-            table: r.c[1]?.v || '',
-            food: r.c[2]?.v || '',
-            quantity: r.c[3]?.v || '',
-            note: r.c[4]?.v || ''
-          }));
+        const tableFilter = document.getElementById("filterTable").value.toLowerCase();
+        const timeFilter = document.getElementById("filterTime").value;
 
-          fillTable(allData);
-          populateTableFilter(allData);
-        });
+        const foodCount = {};
+        for (let row of rows) {
+          const time = row.c[0]?.v || "";
+          const table = row.c[1]?.v || "";
+          const food = row.c[2]?.v || "";
+          const note = row.c[3]?.v || "";
+
+          if (
+            (!tableFilter || table.toLowerCase().includes(tableFilter)) &&
+            (!timeFilter || time.startsWith(timeFilter))
+          ) {
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+              <td class="py-1 px-4">${time}</td>
+              <td class="py-1 px-4">${table}</td>
+              <td class="py-1 px-4">${food}</td>
+              <td class="py-1 px-4">${note}</td>
+            `;
+            tbody.appendChild(tr);
+
+            // Đếm món ăn
+            const items = food.split(",").map(f => f.trim());
+            items.forEach(item => {
+              foodCount[item] = (foodCount[item] || 0) + 1;
+            });
+          }
+        }
+
+        // Cập nhật biểu đồ
+        updateChart(foodCount);
+      } catch (err) {
+        console.error("Lỗi tải dữ liệu:", err);
+      }
     }
 
-    function fillTable(data) {
-      const tbody = document.querySelector('#orderTable tbody');
-      tbody.innerHTML = '';
-      data.forEach(row => {
-        tbody.innerHTML += `
-          <tr>
-            <td>${row.time}</td>
-            <td>${row.table}</td>
-            <td>${row.food}</td>
-            <td>${row.quantity}</td>
-            <td>${row.note}</td>
-          </tr>
-        `;
+    let chart;
+    function updateChart(data) {
+      const labels = Object.keys(data);
+      const values = Object.values(data);
+      if (chart) chart.destroy();
+      const ctx = document.getElementById("chartFood").getContext("2d");
+      chart = new Chart(ctx, {
+        type: "bar",
+        data: {
+          labels,
+          datasets: [{
+            label: "Số lần gọi món",
+            data: values,
+            backgroundColor: "rgba(59,130,246,0.7)"
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { display: false }
+          },
+          scales: {
+            y: { beginAtZero: true }
+          }
+        }
       });
     }
 
-    function populateTableFilter(data) {
-      const select = document.getElementById('tableFilter');
-      const uniqueTables = [...new Set(data.map(row => row.table))];
-      uniqueTables.forEach(table => {
-        const option = document.createElement('option');
-        option.value = table;
-        option.textContent = `Bàn ${table}`;
-        select.appendChild(option);
-      });
-    }
-
-    function filterOrders() {
-      const tableValue = document.getElementById('tableFilter').value;
-      const timeValue = document.getElementById('timeFilter').value;
-
-      const filtered = allData.filter(row => {
-        const matchTable = tableValue === '' || row.table == tableValue;
-        const matchTime = timeValue === '' || row.time.startsWith(timeValue);
-        return matchTable && matchTime;
-      });
-
-      fillTable(filtered);
-    }
-
-    loadOrders();
+    window.onload = loadData;
   </script>
 </body>
 </html>
